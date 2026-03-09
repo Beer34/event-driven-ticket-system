@@ -7,12 +7,6 @@ pipeline {
 
     stages {
 
-        stage('Checkout Code') {
-            steps {
-                git 'https://github.com/Beer34/event-driven-ticket-system.git'
-            }
-        }
-
         stage('Build Inventory Service') {
             steps {
                 dir('inventory-service') {
