@@ -1,26 +1,57 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven'
+    }
+
     stages {
 
-        stage('Build') {
+        stage('Checkout Code') {
             steps {
-                sh 'mvn clean install'
+                git 'https://github.com/Beer34/event-driven-ticket-system.git'
             }
         }
 
-        stage('Test') {
+        stage('Build Inventory Service') {
             steps {
-                sh 'mvn test'
+                dir('inventory-service') {
+                    sh 'mvn clean install'
+                }
+            }
+        }
+
+        stage('Build Booking Service') {
+            steps {
+                dir('booking-service') {
+                    sh 'mvn clean install'
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                dir('inventory-service') {
+                    sh 'mvn test'
+                }
+                dir('booking-service') {
+                    sh 'mvn test'
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh 'mvn sonar:sonar'
+                    dir('inventory-service') {
+                        sh 'mvn sonar:sonar'
+                    }
+                    dir('booking-service') {
+                        sh 'mvn sonar:sonar'
+                    }
                 }
             }
         }
+
     }
 }
