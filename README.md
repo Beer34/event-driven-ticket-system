@@ -29,4 +29,4 @@ Run inventory-service
 Run booking-service
 
 
-CIC-7: Seat availability feature implementation.
+CIC-7: Seat availability feature implementation.CIC-7 Jira sync test
