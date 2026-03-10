@@ -27,3 +27,5 @@ Booking Service
 Start Kafka
 Run inventory-service
 Run booking-service
+
+CIC-6 Automatic seat release feature implementation
