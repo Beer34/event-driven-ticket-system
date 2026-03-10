@@ -27,3 +27,6 @@ Booking Service
 Start Kafka
 Run inventory-service
 Run booking-service
+
+
+CIC-4 Search events feature implementation
