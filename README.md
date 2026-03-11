@@ -27,3 +27,5 @@ Booking Service
 Start Kafka
 Run inventory-service
 Run booking-service
+
+CIC-10 Publish seat reservation and release events
