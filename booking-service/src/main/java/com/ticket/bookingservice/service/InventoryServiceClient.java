@@ -15,7 +15,7 @@ public class InventoryServiceClient {
 
     public List<Seat> getSeats(String eventId) {
 
-        String url = "http://localhost:8080/seats/" + eventId;
+        String url = "http://localhost:8081/seats/" + eventId;
 
         Seat[] seats = restTemplate.getForObject(url, Seat[].class);
 
