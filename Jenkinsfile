@@ -93,10 +93,13 @@ pipeline {
 
             // Publish Karate Report
             publishHTML([
-                reportDir: 'karate-tests/target/karate-reports',
-                reportFiles: 'karate-summary.html',
-                reportName: 'Karate Test Report'
-            ])
+    	    reportDir: 'karate-tests/target/karate-reports',
+            reportFiles: 'karate-summary.html',
+            reportName: 'Karate Test Report',
+            keepAll: true,
+            alwaysLinkToLastBuild: true,
+            allowMissing: false
+          ])
         }
     }
 }
