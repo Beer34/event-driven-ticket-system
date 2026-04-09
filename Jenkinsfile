@@ -69,7 +69,25 @@ pipeline {
             }
         }
 
-        // MOST IMPORTANT STAGE
+        // START SERVICES
+        stage('Start Services') {
+            steps {
+                script {
+                    sh '''
+                    echo "Starting services..."
+
+                    cd inventory-service && mvn spring-boot:run > inventory.log 2>&1 &
+                    cd ../booking-service && mvn spring-boot:run > booking.log 2>&1 &
+                    cd ../payment-service && mvn spring-boot:run > payment.log 2>&1 &
+
+                    echo "Waiting for services to start..."
+                    sleep 25
+                    '''
+                }
+            }
+        }
+
+        // KARATE TESTS 
         stage('Integration Tests - Karate') {
             steps {
                 dir('karate-tests') {
@@ -91,15 +109,14 @@ pipeline {
                    classPattern: '**/target/classes',
                    sourcePattern: '**/src/main/java'
 
-            // Publish Karate Report
             publishHTML([
-    	    reportDir: 'karate-tests/target/karate-reports',
-            reportFiles: 'karate-summary.html',
-            reportName: 'Karate Test Report',
-            keepAll: true,
-            alwaysLinkToLastBuild: true,
-            allowMissing: false
-          ])
+                reportDir: 'karate-tests/target/karate-reports',
+                reportFiles: 'karate-summary.html',
+                reportName: 'Karate Test Report',
+                keepAll: true,
+                alwaysLinkToLastBuild: true,
+                allowMissing: false
+            ])
         }
     }
 }
