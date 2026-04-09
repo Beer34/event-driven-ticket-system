@@ -7,106 +7,66 @@ pipeline {
 
     stages {
 
-        stage('Build Inventory Service') {
+        stage('Build Services') {
             steps {
-                dir('inventory-service') {
-                    sh 'mvn clean install -DskipTests'
-                }
-            }
-        }
-
-        stage('Build Booking Service') {
-            steps {
-                dir('booking-service') {
-                    sh 'mvn clean install -DskipTests'
-                }
-            }
-        }
-
-        stage('Build Payment Service') {
-            steps {
-                dir('payment-service') {
-                    sh 'mvn clean install -DskipTests'
-                }
-            }
-        }
-
-        stage('Build Notification Service') {
-            steps {
-                dir('notification-service') {
-                    sh 'mvn clean install -DskipTests'
-                }
+                sh '''
+                mvn -f inventory-service/pom.xml clean install -DskipTests
+                mvn -f booking-service/pom.xml clean install -DskipTests
+                mvn -f payment-service/pom.xml clean install -DskipTests
+                mvn -f notification-service/pom.xml clean install -DskipTests
+                '''
             }
         }
 
         stage('Unit Tests') {
             steps {
-                dir('inventory-service') {
-                    sh 'mvn test'
-                }
-                dir('booking-service') {
-                    sh 'mvn test'
-                }
-                dir('payment-service') {
-                    sh 'mvn test'
-                }
-                dir('notification-service') {
-                    sh 'mvn test'
-                }
+                sh '''
+                mvn -f inventory-service/pom.xml test
+                mvn -f booking-service/pom.xml test
+                mvn -f payment-service/pom.xml test
+                mvn -f notification-service/pom.xml test
+                '''
             }
         }
 
         stage('Start Services') {
             steps {
-                script {
-                    sh '''
-                    echo "Starting services with nohup..."
+                sh '''
+                echo "Starting services..."
 
-                    cd inventory-service
-                    nohup mvn spring-boot:run > inventory.log 2>&1 &
-                    echo $! > inventory.pid
-                    cd ..
+                nohup mvn -f inventory-service/pom.xml spring-boot:run > inventory.log 2>&1 &
+                echo $! > inventory.pid
 
-                    cd booking-service
-                    nohup mvn spring-boot:run > booking.log 2>&1 &
-                    echo $! > booking.pid
-                    cd ..
+                nohup mvn -f booking-service/pom.xml spring-boot:run > booking.log 2>&1 &
+                echo $! > booking.pid
 
-                    cd payment-service
-                    nohup mvn spring-boot:run > payment.log 2>&1 &
-                    echo $! > payment.pid
-                    cd ..
+                nohup mvn -f payment-service/pom.xml spring-boot:run > payment.log 2>&1 &
+                echo $! > payment.pid
 
-                    echo "Waiting for services to start..."
-                    sleep 60
+                nohup mvn -f notification-service/pom.xml spring-boot:run > notification.log 2>&1 &
+                echo $! > notification.pid
 
-                    echo "Checking running ports..."
-                    lsof -i :8081 || true
-                    lsof -i :8082 || true
-                    lsof -i :8083 || true
+                echo "Waiting for services to be ready..."
+                sleep 60
 
-                    echo "===== INVENTORY LOG ====="
-                    tail -n 50 inventory-service/inventory.log || true
-
-                    echo "===== BOOKING LOG ====="
-                    tail -n 50 booking-service/booking.log || true
-
-                    echo "===== PAYMENT LOG ====="
-                    tail -n 50 payment-service/payment.log || true
-                    '''
-                }
+                echo "Checking ports..."
+                lsof -i :8081 || true
+                lsof -i :8082 || true
+                lsof -i :8083 || true
+                lsof -i :8084 || true
+                '''
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    dir('inventory-service') {
-                        sh 'mvn sonar:sonar'
-                    }
-                    dir('booking-service') {
-                        sh 'mvn sonar:sonar'
-                    }
+                    sh '''
+                    mvn -f inventory-service/pom.xml sonar:sonar
+                    mvn -f booking-service/pom.xml sonar:sonar
+                    mvn -f payment-service/pom.xml sonar:sonar
+                    mvn -f notification-service/pom.xml sonar:sonar
+                    '''
                 }
             }
         }
@@ -125,13 +85,13 @@ pipeline {
 
     post {
         always {
-
             echo "Stopping services..."
 
             sh '''
-            kill $(cat inventory-service/inventory.pid) || true
-            kill $(cat booking-service/booking.pid) || true
-            kill $(cat payment-service/payment.pid) || true
+            kill $(cat inventory.pid) || true
+            kill $(cat booking.pid) || true
+            kill $(cat payment.pid) || true
+            kill $(cat notification.pid) || true
             '''
 
             junit '**/target/surefire-reports/*.xml'
