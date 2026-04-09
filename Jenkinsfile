@@ -69,7 +69,7 @@ pipeline {
             }
         }
 
-        // START SERVICES
+        // START SERVICES FOR KARATE TESTS
         stage('Start Services') {
             steps {
                 script {
@@ -81,13 +81,22 @@ pipeline {
                     cd ../payment-service && mvn spring-boot:run > payment.log 2>&1 &
 
                     echo "Waiting for services to start..."
-                    sleep 25
+                    sleep 45
+
+                    echo "===== INVENTORY LOG ====="
+                    tail -n 50 inventory-service/inventory.log || true
+
+                    echo "===== BOOKING LOG ====="
+                    tail -n 50 booking-service/booking.log || true
+
+                    echo "===== PAYMENT LOG ====="
+                    tail -n 50 payment-service/payment.log || true
                     '''
                 }
             }
         }
 
-        // KARATE TESTS 
+        // KARATE TESTS
         stage('Integration Tests - Karate') {
             steps {
                 dir('karate-tests') {
