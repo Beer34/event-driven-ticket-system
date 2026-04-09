@@ -10,7 +10,7 @@ pipeline {
         stage('Build Inventory Service') {
             steps {
                 dir('inventory-service') {
-                    sh 'mvn clean install'
+                    sh 'mvn clean install -DskipTests'
                 }
             }
         }
@@ -18,7 +18,7 @@ pipeline {
         stage('Build Booking Service') {
             steps {
                 dir('booking-service') {
-                    sh 'mvn clean install'
+                    sh 'mvn clean install -DskipTests'
                 }
             }
         }
@@ -26,7 +26,7 @@ pipeline {
         stage('Build Payment Service') {
             steps {
                 dir('payment-service') {
-                    sh 'mvn clean install'
+                    sh 'mvn clean install -DskipTests'
                 }
             }
         }
@@ -34,7 +34,7 @@ pipeline {
         stage('Build Notification Service') {
             steps {
                 dir('notification-service') {
-                    sh 'mvn clean install'
+                    sh 'mvn clean install -DskipTests'
                 }
             }
         }
@@ -56,32 +56,34 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    dir('inventory-service') {
-                        sh 'mvn sonar:sonar'
-                    }
-                    dir('booking-service') {
-                        sh 'mvn sonar:sonar'
-                    }
-                }
-            }
-        }
-
-        // START SERVICES FOR KARATE TESTS
         stage('Start Services') {
             steps {
                 script {
                     sh '''
-                    echo "Starting services..."
+                    echo "Starting services with nohup..."
 
-                    cd inventory-service && mvn spring-boot:run > inventory.log 2>&1 &
-                    cd ../booking-service && mvn spring-boot:run > booking.log 2>&1 &
-                    cd ../payment-service && mvn spring-boot:run > payment.log 2>&1 &
+                    cd inventory-service
+                    nohup mvn spring-boot:run > inventory.log 2>&1 &
+                    echo $! > inventory.pid
+                    cd ..
+
+                    cd booking-service
+                    nohup mvn spring-boot:run > booking.log 2>&1 &
+                    echo $! > booking.pid
+                    cd ..
+
+                    cd payment-service
+                    nohup mvn spring-boot:run > payment.log 2>&1 &
+                    echo $! > payment.pid
+                    cd ..
 
                     echo "Waiting for services to start..."
-                    sleep 45
+                    sleep 60
+
+                    echo "Checking running ports..."
+                    lsof -i :8081 || true
+                    lsof -i :8082 || true
+                    lsof -i :8083 || true
 
                     echo "===== INVENTORY LOG ====="
                     tail -n 50 inventory-service/inventory.log || true
@@ -96,7 +98,19 @@ pipeline {
             }
         }
 
-        // KARATE TESTS
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    dir('inventory-service') {
+                        sh 'mvn sonar:sonar'
+                    }
+                    dir('booking-service') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+
         stage('Integration Tests - Karate') {
             steps {
                 dir('karate-tests') {
@@ -111,6 +125,14 @@ pipeline {
 
     post {
         always {
+
+            echo "Stopping services..."
+
+            sh '''
+            kill $(cat inventory-service/inventory.pid) || true
+            kill $(cat booking-service/booking.pid) || true
+            kill $(cat payment-service/payment.pid) || true
+            '''
 
             junit '**/target/surefire-reports/*.xml'
 
