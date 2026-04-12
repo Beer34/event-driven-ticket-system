@@ -7,6 +7,7 @@ pipeline {
 
     environment {
         DOCKER_USER = 'lakshann'
+        PATH = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
 
     stages {
