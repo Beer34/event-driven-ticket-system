@@ -114,6 +114,15 @@ pipeline {
         stage('Docker Deploy') {
             steps {
                 sh '''
+                echo "Stopping manually started services before Docker deploy..."
+
+                kill $(cat inventory.pid) || true
+                kill $(cat booking.pid) || true
+                kill $(cat payment.pid) || true
+                kill $(cat notification.pid) || true
+
+                sleep 10
+
                 docker compose down || true
                 docker compose up -d
                 '''
@@ -123,14 +132,6 @@ pipeline {
 
     post {
         always {
-            echo "Stopping manually started services..."
-
-            sh '''
-            kill $(cat inventory.pid) || true
-            kill $(cat booking.pid) || true
-            kill $(cat payment.pid) || true
-            kill $(cat notification.pid) || true
-            '''
 
             junit '**/target/surefire-reports/*.xml'
 
