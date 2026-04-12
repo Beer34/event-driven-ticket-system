@@ -5,6 +5,10 @@ pipeline {
         maven 'Maven'
     }
 
+    environment {
+        DOCKER_USER = 'lakshann'
+    }
+
     stages {
 
         stage('Build Services') {
@@ -48,12 +52,6 @@ pipeline {
 
                 echo "Waiting for services to be ready..."
                 sleep 60
-
-                echo "Checking ports..."
-                lsof -i :8081 || true
-                lsof -i :8082 || true
-                lsof -i :8083 || true
-                lsof -i :8084 || true
                 '''
             }
         }
@@ -62,10 +60,10 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
-                    mvn -f inventory-service/pom.xml sonar:sonar
-                    mvn -f booking-service/pom.xml sonar:sonar
-                    mvn -f payment-service/pom.xml sonar:sonar
-                    mvn -f notification-service/pom.xml sonar:sonar
+                    mvn -f inventory-service/pom.xml sonar:sonar -Dsonar.projectKey=inventory-service
+                    mvn -f booking-service/pom.xml sonar:sonar -Dsonar.projectKey=booking-service
+                    mvn -f payment-service/pom.xml sonar:sonar -Dsonar.projectKey=payment-service
+                    mvn -f notification-service/pom.xml sonar:sonar -Dsonar.projectKey=notification-service
                     '''
                 }
             }
@@ -81,11 +79,50 @@ pipeline {
                 }
             }
         }
+
+        stage('Docker Build Images') {
+            steps {
+                sh '''
+                docker build -t $DOCKER_USER/inventory-service:latest ./inventory-service
+                docker build -t $DOCKER_USER/booking-service:latest ./booking-service
+                docker build -t $DOCKER_USER/payment-service:latest ./payment-service
+                docker build -t $DOCKER_USER/notification-service:latest ./notification-service
+                '''
+            }
+        }
+
+        stage('Docker Push Images') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USERNAME',
+                    passwordVariable: 'DOCKER_PASSWORD'
+                )]) {
+                    sh '''
+                    echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+                    docker push $DOCKER_USER/inventory-service:latest
+                    docker push $DOCKER_USER/booking-service:latest
+                    docker push $DOCKER_USER/payment-service:latest
+                    docker push $DOCKER_USER/notification-service:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Deploy') {
+            steps {
+                sh '''
+                docker compose down || true
+                docker compose up -d
+                '''
+            }
+        }
     }
 
     post {
         always {
-            echo "Stopping services..."
+            echo "Stopping manually started services..."
 
             sh '''
             kill $(cat inventory.pid) || true
