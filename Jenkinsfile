@@ -88,11 +88,6 @@ pipeline {
                 docker build -t $DOCKER_USER/booking-service:$BUILD_NUMBER ./booking-service
                 docker build -t $DOCKER_USER/payment-service:$BUILD_NUMBER ./payment-service
                 docker build -t $DOCKER_USER/notification-service:$BUILD_NUMBER ./notification-service
-
-                docker tag $DOCKER_USER/inventory-service:$BUILD_NUMBER $DOCKER_USER/inventory-service:latest
-                docker tag $DOCKER_USER/booking-service:$BUILD_NUMBER $DOCKER_USER/booking-service:latest
-                docker tag $DOCKER_USER/payment-service:$BUILD_NUMBER $DOCKER_USER/payment-service:latest
-                docker tag $DOCKER_USER/notification-service:$BUILD_NUMBER $DOCKER_USER/notification-service:latest
                 '''
             }
         }
@@ -111,11 +106,6 @@ pipeline {
                     docker push $DOCKER_USER/booking-service:$BUILD_NUMBER
                     docker push $DOCKER_USER/payment-service:$BUILD_NUMBER
                     docker push $DOCKER_USER/notification-service:$BUILD_NUMBER
-
-                    docker push $DOCKER_USER/inventory-service:latest
-                    docker push $DOCKER_USER/booking-service:latest
-                    docker push $DOCKER_USER/payment-service:latest
-                    docker push $DOCKER_USER/notification-service:latest
                     '''
                 }
             }
@@ -133,8 +123,12 @@ pipeline {
 
                 sleep 10
 
-                docker compose down || true
-                docker compose up -d
+                docker rm -f inventory-container booking-container payment-container notification-container || true
+
+                docker run -d -p 8081:8081 --name inventory-container $DOCKER_USER/inventory-service:$BUILD_NUMBER
+                docker run -d -p 8082:8082 --name booking-container $DOCKER_USER/booking-service:$BUILD_NUMBER
+                docker run -d -p 8083:8083 --name payment-container $DOCKER_USER/payment-service:$BUILD_NUMBER
+                docker run -d -p 8084:8084 --name notification-container $DOCKER_USER/notification-service:$BUILD_NUMBER
                 '''
             }
         }
