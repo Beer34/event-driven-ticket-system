@@ -84,10 +84,15 @@ pipeline {
         stage('Docker Build Images') {
             steps {
                 sh '''
-                docker build -t $DOCKER_USER/inventory-service:latest ./inventory-service
-                docker build -t $DOCKER_USER/booking-service:latest ./booking-service
-                docker build -t $DOCKER_USER/payment-service:latest ./payment-service
-                docker build -t $DOCKER_USER/notification-service:latest ./notification-service
+                docker build -t $DOCKER_USER/inventory-service:$BUILD_NUMBER ./inventory-service
+                docker build -t $DOCKER_USER/booking-service:$BUILD_NUMBER ./booking-service
+                docker build -t $DOCKER_USER/payment-service:$BUILD_NUMBER ./payment-service
+                docker build -t $DOCKER_USER/notification-service:$BUILD_NUMBER ./notification-service
+
+                docker tag $DOCKER_USER/inventory-service:$BUILD_NUMBER $DOCKER_USER/inventory-service:latest
+                docker tag $DOCKER_USER/booking-service:$BUILD_NUMBER $DOCKER_USER/booking-service:latest
+                docker tag $DOCKER_USER/payment-service:$BUILD_NUMBER $DOCKER_USER/payment-service:latest
+                docker tag $DOCKER_USER/notification-service:$BUILD_NUMBER $DOCKER_USER/notification-service:latest
                 '''
             }
         }
@@ -101,6 +106,11 @@ pipeline {
                 )]) {
                     sh '''
                     echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+                    docker push $DOCKER_USER/inventory-service:$BUILD_NUMBER
+                    docker push $DOCKER_USER/booking-service:$BUILD_NUMBER
+                    docker push $DOCKER_USER/payment-service:$BUILD_NUMBER
+                    docker push $DOCKER_USER/notification-service:$BUILD_NUMBER
 
                     docker push $DOCKER_USER/inventory-service:latest
                     docker push $DOCKER_USER/booking-service:latest
