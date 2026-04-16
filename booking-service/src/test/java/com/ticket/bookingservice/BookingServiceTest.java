@@ -35,4 +35,12 @@ public class BookingServiceTest {
 
         assertEquals("Batman", events.get(1).getName());
     }
+    @Test
+    void testEventDetails() {
+
+        List<Event> events = eventService.getEvents();
+
+        assertEquals("E1", events.get(0).getEventId());
+        assertEquals("18:00", events.get(0).getShowtime());
+    }
 }

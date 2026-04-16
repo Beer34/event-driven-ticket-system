@@ -1,0 +1,27 @@
+services:
+
+  inventory-service:
+    image: inventory-service
+    container_name: inventory-container
+    ports:
+      - "8081:8081"
+
+  booking-service:
+    image: booking-service
+    container_name: booking-container
+    ports:
+      - "8082:8082"
+    depends_on:
+      - inventory-service
+
+  payment-service:
+    image: payment-service
+    container_name: payment-container
+    ports:
+      - "8083:8083"
+
+  notification-service:
+    image: notification-service
+    container_name: notification-container
+    ports:
+      - "8084:8084"

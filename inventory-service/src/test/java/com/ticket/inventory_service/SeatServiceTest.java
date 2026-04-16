@@ -1,5 +1,6 @@
 package com.ticket.inventory_service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -85,5 +86,51 @@ public class SeatServiceTest {
 
         verify(seatRepository, times(1))
                 .findByEventIdAndStatus("E1", SeatStatus.AVAILABLE);
+    }
+    
+    // Test seat not found
+    @Test
+    void testReserveSeatNotFound() {
+
+        when(seatRepository.findById("A1")).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+        seatService.reserveSeat("A1");
+        });
+
+        assertEquals("Seat not found", exception.getMessage());
+    }
+
+    // Test release expired seats
+    @Test
+    void testReleaseExpiredSeats() {
+
+        Seat seat = new Seat("A1", "E1", SeatStatus.RESERVED);
+        seat.setExpiryTime(LocalDateTime.now().minusMinutes(1));
+
+        when(seatRepository.findAll()).thenReturn(List.of(seat));
+        when(seatRepository.save(any())).thenReturn(seat);
+
+        seatService.releaseExpiredSeats();
+
+        assertEquals(SeatStatus.AVAILABLE, seat.getStatus());
+
+        verify(seatRepository, times(1)).save(any());
+        verify(seatEventProducer, times(1)).sendSeatEvent(any());
+    }
+
+    // Test releaseExpiredSeats when nothing to release
+    @Test
+    void testReleaseExpiredSeats_NoExpired() {
+
+        Seat seat = new Seat("A1", "E1", SeatStatus.RESERVED);
+        seat.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+
+        when(seatRepository.findAll()).thenReturn(List.of(seat));
+
+        seatService.releaseExpiredSeats();
+
+        verify(seatRepository, times(0)).save(any());
+        verify(seatEventProducer, times(0)).sendSeatEvent(any());
     }
 }
